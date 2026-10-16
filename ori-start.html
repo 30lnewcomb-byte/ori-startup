@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#171717">
+<title>Ori · Solid-waddle</title>
+<style>
+@font-face{font-family:"Ori Text";src:url("https://ori-platform.vercel.app/fonts/OriText-Regular.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Ori Display";src:url("https://ori-platform.vercel.app/fonts/OriDisplay-Regular.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Ori Mono";src:url("https://ori-platform.vercel.app/fonts/OriMono-Regular.woff2") format("woff2");font-display:swap}
+:root{color-scheme:dark;--bg:#171717;--panel:#202020;--text:#f5f5f4;--muted:#a3a3a3;--soft:#737373;--line:#383838;--accent:#e7e7e7;font-family:"Ori Text",Arial,Helvetica,sans-serif;color:var(--text);background:var(--bg)}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0}body{min-height:100dvh;background:var(--bg);display:flex;flex-direction:column}
+header{height:58px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 25px}
+.brand{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text)}.brand-mark{display:grid;place-items:center;width:27px;height:27px;border:1px solid #555;border-radius:50%;color:#f5f5f4;font:17px "Ori Display",serif}.brand small{color:var(--muted);font-size:11px;margin-left:3px}
+.header-actions{display:flex;align-items:center;gap:8px}.link{color:#bdbdbd;text-decoration:none;font-size:12px;padding:8px 10px;border-radius:8px}.link:hover{background:#ffffff0b;color:white}
+main{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 22px 58px}
+.chat-stage{width:min(820px,100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;transform:translateY(-4%)}
+.greeting{width:100%;text-align:center;margin:0}.eyebrow{font:10px "Ori Mono",monospace;letter-spacing:.14em;color:#858585;margin:0 0 15px;text-transform:uppercase}
+h1{font:400 clamp(32px,4.2vw,48px)/1.08 "Ori Display","Ori Text",sans-serif;letter-spacing:-.045em;margin:0;color:#f5f5f4}
+.composer{position:relative;width:100%;display:flex;align-items:flex-end;gap:8px;padding:10px;background:#202020;border:1px solid #393939;border-radius:18px;transition:border-color .18s,box-shadow .18s}
+.composer:focus-within{border-color:#666;box-shadow:0 8px 30px rgb(0 0 0 / 20%)}
+textarea{display:block;flex:1;width:100%;min-width:0;min-height:27px;max-height:180px;resize:none;border:0;outline:0;background:transparent;color:var(--text);font:15px/1.6 "Ori Text",Arial,sans-serif;padding:3px 5px}
+textarea::placeholder{color:#858585}
+button{font:inherit;cursor:pointer;border-radius:50%;width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border:0;background:#f0f0ef;color:#171717;font-size:21px;line-height:1;transition:background .15s,opacity .15s}
+button:hover:not(:disabled){background:#d4d4d4}button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid #d4d4d4;outline-offset:3px}button:disabled{cursor:default;opacity:.35}
+.notice{min-height:18px;width:100%;text-align:center;margin:0;color:#929292;font-size:12px;line-height:1.5}
+.notice.error{color:#c5c5c5}
+footer{position:absolute;bottom:17px;left:0;right:0;display:flex;justify-content:center;color:#656565;font:9px "Ori Mono",monospace;letter-spacing:.08em}
+@media(max-width:600px){header{padding:0 14px}.brand small{display:none}main{padding:16px 16px 54px}.chat-stage{gap:24px}h1{font-size:35px}.link{padding:8px 6px;font-size:11px}textarea{font-size:14px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="brand-mark" aria-hidden="true">o</span><span>Ori <small>inside Solid-waddle</small></span></div>
+  <nav class="header-actions" aria-label="Quick links"><a class="link" href="https://ori-platform.vercel.app/chat" target="_blank" rel="noopener noreferrer">Open Ori Platform ↗</a><a class="link" href="/browser" target="_blank" rel="noopener noreferrer">Browser ↗</a></nav>
+</header>
+<main>
+  <section class="chat-stage" aria-labelledby="greeting-title">
+    <div class="greeting">
+      <p class="eyebrow">ORI · NEW CHAT</p>
+      <h1 id="greeting-title">What’s on your mind today?</h1>
+    </div>
+    <form class="composer" id="chat-form" aria-label="Message Ori">
+      <textarea id="message" rows="1" maxlength="8000" placeholder="Message Ori..." aria-label="Message Ori"></textarea>
+      <button id="send-button" type="submit" aria-label="Send message" disabled>↑</button>
+    </form>
+    <p class="notice" id="status" role="status" aria-live="polite">Your message box is ready. Chat responses will be available when the Ori connection is enabled.</p>
+  </section>
+  <footer>ORI · DISPLAY / TEXT / MONO</footer>
+</main>
+<script>
+(() => {
+  const form = document.querySelector("#chat-form");
+  const input = document.querySelector("#message");
+  const send = document.querySelector("#send-button");
+  const status = document.querySelector("#status");
+  const greeting = document.querySelector("#greeting-title");
+  // A larger pool helps Ori feel less repetitive when switching between apps.
+  // This is local random selection; cross-site coordination would need a shared service.
+  const emptyPrompts = [
+    "What’s on your mind today?",
+    "What would you like to work on?",
+    "What can we figure out together?",
+    "What are you thinking about?",
+    "Where should we start?",
+    "What would you like to explore?",
+    "What are you working on today?",
+    "Got something on your mind?",
+    "What should we tackle?",
+    "What can Ori help with?",
+    "Ready when you are.",
+    "What are we working on?",
+    "What would you like to figure out?",
+    "Need a hand with something?",
+    "What should we dive into?",
+    "What’s up?",
+    "What would you like to talk about?",
+    "Have something in mind?",
+    "What should we look at?",
+    "What do you want to build today?",
+    "What brings you here?",
+    "Where would you like to begin?",
+    "What’s the plan?",
+    "What’s on the agenda?",
+    "What are you curious about?",
+    "What idea are you exploring?",
+    "What would be useful right now?",
+    "What can we make progress on?",
+    "What’s your next move?",
+    "What would you like to make easier?",
+    "What have you been thinking about?",
+    "What would you like to get done?",
+    "What’s the first thing on your list?",
+    "What are you hoping to figure out?",
+    "What would you like to create?",
+    "What problem are we solving today?",
+    "What’s a project you have in mind?",
+    "What would you like to understand better?",
+    "What’s something you want to try?",
+    "What are you planning?",
+    "What would you like to pick back up?",
+    "What’s worth exploring today?",
+    "What would you like a second brain for?",
+    "What’s the question of the moment?",
+    "What are you looking into?",
+    "What would you like to sort out?",
+    "What’s an idea you want to test?",
+    "What should we make sense of?",
+    "What would you like to improve?",
+    "What are you trying to solve?",
+    "What’s something you want to learn?",
+    "What do you want to make happen?",
+    "What would you like to plan out?",
+    "What’s the thing you keep coming back to?",
+    "What would you like to get started on?",
+    "What’s something we can untangle?",
+    "What would you like to brainstorm?",
+    "What’s caught your attention lately?",
+    "What would you like to explore next?",
+    "What are you building toward?",
+    "What would help you move forward?",
+    "What’s the next thing to figure out?",
+    "What would you like to put together?",
+    "What are you curious to test?",
+    "What would you like to talk through?",
+    "What’s a thought you want to follow?",
+    "What should we take a closer look at?",
+    "What would you like to work through?",
+    "What are you hoping to make?",
+    "What’s something you’d like to organize?",
+    "What can we untangle together?",
+    "What would you like to sketch out?",
+    "What’s the idea today?",
+    "What do you want to get into?",
+    "What would you like to revisit?",
+    "What’s something you want to get right?",
+    "What would you like to explore from here?",
+    "What should we give some thought to?",
+    "What’s a little project on your mind?",
+    "What would you like to turn into a plan?",
+    "What are you working toward?",
+    "What would you like to make clearer?",
+    "What’s one thing you want to move forward?",
+    "What can we start with?",
+    "What’s the question you have today?",
+    "What would you like to take on?",
+    "What idea should we give a go?",
+    "What’s something you want to build on?",
+    "What would you like to get unstuck on?",
+    "What should we think through?",
+    "What are you hoping to discover?",
+    "What would you like to make sense of?",
+    "What’s something you want to put into words?",
+    "What would you like to shape into something real?",
+    "What’s on your radar?",
+    "What would you like to focus on?",
+    "What should we figure out first?",
+    "What would you like to try making?",
+    "What’s a question you’ve been carrying around?",
+    "What would you like to do with that idea?",
+    "What’s the next little step?",
+    "What would you like to bring to life?",
+    "What should we explore together?"
+  ];
+  // Rotate through the pool without repeats across visits on this browser origin.
+  // This history is local to Solid-waddle; Ori Platform cannot read it across domains.
+  const greetingHistoryKey = "ori-start-greeting-history-v1";
+  let greetingHistory = [];
+  try {
+    const savedHistory = JSON.parse(localStorage.getItem(greetingHistoryKey) || "[]");
+    if (Array.isArray(savedHistory)) {
+      greetingHistory = savedHistory.filter(prompt => typeof prompt === "string" && emptyPrompts.includes(prompt));
+    }
+  } catch {
+    // Storage may be unavailable in private or restricted browsing contexts; keep the page usable.
+  }
+  let choices = emptyPrompts.filter(prompt => !greetingHistory.includes(prompt));
+  if (choices.length === 0) {
+    // Every greeting has been used: start a fresh cycle, avoiding the last greeting.
+    const lastGreeting = greetingHistory[greetingHistory.length - 1];
+    choices = emptyPrompts.filter(prompt => prompt !== lastGreeting);
+    greetingHistory = [];
+  }
+  const selectedGreeting = choices[Math.floor(Math.random() * choices.length)];
+  greeting.textContent = selectedGreeting;
+  greetingHistory.push(selectedGreeting);
+  try {
+    localStorage.setItem(greetingHistoryKey, JSON.stringify(greetingHistory));
+  } catch {
+    // Random greeting selection still works when storage is unavailable.
+  }
+  input.addEventListener("input", () => {
+    send.disabled = !input.value.trim();
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 180) + "px";
+  });
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const message = input.value.trim();
+    if (!message) return;
+    status.classList.add("error");
+    status.textContent = "This message hasn't been sent: the Solid-waddle Ori chat connection is intentionally waiting until the runtime is available again. Use “Open Ori Platform” to chat with Ori for now.";
+  });
+})();
+</script>
+</body>
+</html>
